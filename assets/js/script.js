@@ -3,15 +3,16 @@ var tasks = {};
 var createTask = function(taskText, taskDate, taskList) {
   // create elements that make up a task item
   var taskLi = $("<li>").addClass("list-group-item");
-  var taskSpan = $("<span>")
-    .addClass("badge badge-primary badge-pill")
-    .text(taskDate);
-  var taskP = $("<p>")
-    .addClass("m-1")
-    .text(taskText);
+  
+  var taskSpan = $("<span>").addClass("badge badge-primary badge-pill").text(taskDate);
+  
+  var taskP = $("<p>").addClass("m-1").text(taskText);
 
   // append span and p element to parent li
   taskLi.append(taskSpan, taskP);
+
+  //check due date 
+  auditTask(taskLi);
 
   // append to ul list on the page
   $("#list-" + taskList).append(taskLi);
@@ -42,6 +43,36 @@ var loadTasks = function() {
 
 var saveTasks = function() {
   localStorage.setItem("tasks", JSON.stringify(tasks));
+};
+
+/* Here's basically what we have done---->
+  We use the Date variable that was created from taskEl to make a new Moment object that is configured for the user's local time 
+  using moment(date,"L"). 
+
+  Because we did not specify the a time of the day, by default Moment object will default to 12 AM. 
+
+  Because work does not usually end at 12AM, we convert it to 5PM of the day instead, using the 
+  .set("hour", 17) method. Remember, we are using 24 hrs system. 
+*/
+//This function audits dates
+var auditTask = function(taskEl){
+  //Gets date from the Task Element 
+  var date = $(taskEl).find("span").text().trim();
+  
+  //Convert to moment object at 5:00PM
+  var time = moment(date,"L").set("hour",17); 
+  
+  //Remove any old classes from element 
+  $(taskEl).removeClass("list-group-item-warning list-group-item-danger");
+
+  //Apply new class if task is near/over due date 
+  if (moment().isAfter(time)){
+    $(taskEl).addClass("list-group-item-danger");
+  }
+  else if(Math.abs(moment().diff(time, "days")) <=2){
+    $(taskEl).addClass("list-group-item-warning");
+  }
+
 };
 
 // enable draggable/sortable feature on list-group elements
@@ -116,6 +147,10 @@ $("#trash").droppable({
 
 
 // modal was triggered
+//Auto-gens a calendar in the date picker 
+$("#modalDueDate").datepicker({
+  minDate: 1 // Prevents users from picking a past date from setting the minimum date to be one day from the current date!
+});
 $("#task-form-modal").on("show.bs.modal", function() {
   // clear values
   $("#modalTaskDescription, #modalDueDate").val("");
@@ -165,7 +200,7 @@ $(".list-group").on("click", "p", function() {
 });
 
 // editable field was un-focused
-$(".list-group").on("blur", "textarea", function() {
+$(".list-group").on("change", "input[type='text']", function() {
   // get current value of textarea
   var text = $(this).val();
 
@@ -194,16 +229,21 @@ $(".list-group").on("blur", "textarea", function() {
 // due date was clicked
 $(".list-group").on("click", "span", function() {
   // get current text
-  var date = $(this)
-    .text()
-    .trim();
+  var date = $(this).text().trim();
 
   // create new input element
-  var dateInput = $("<input>")
-    .attr("type", "text")
-    .addClass("form-control")
-    .val(date);
+  var dateInput = $("<input>").attr("type", "text").addClass("form-control").val(date);
+  
   $(this).replaceWith(dateInput);
+
+  //enables jQuery UI datepicker
+  dateInput.datepicker({
+    minDate: 1,
+    onClose: function() {
+      // When calendar is closed, force a "change" event on the 'dateInput' 
+      $(this).trigger("change");
+    }
+  });
 
   // automatically bring up the calendar
   dateInput.trigger("focus");
@@ -231,6 +271,9 @@ $(".list-group").on("change", "input[type='text']", function() {
     .addClass("badge badge-primary badge-pill")
     .text(date);
     $(this).replaceWith(taskSpan);
+
+  //Pass task's <li> element into auditTask() to check the new due date 
+  auditTask($(taskSpan).closest(".list-group-item"));
 });
 
 // remove all tasks
