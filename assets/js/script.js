@@ -200,7 +200,7 @@ $(".list-group").on("click", "p", function() {
 });
 
 // editable field was un-focused
-$(".list-group").on("change", "input[type='text']", function() {
+$(".list-group").on("blur", "textarea", function() {
   // get current value of textarea
   var text = $(this).val();
 
@@ -244,7 +244,6 @@ $(".list-group").on("click", "span", function() {
       $(this).trigger("change");
     }
   });
-
   // automatically bring up the calendar
   dateInput.trigger("focus");
 });
@@ -288,3 +287,12 @@ $("#remove-tasks").on("click", function() {
 
 // load tasks for the first time
 loadTasks();
+
+/* setTimeout means an alert will show up once after given period
+setInterval means an alert will continuisly show up after each given period*/
+
+setInterval(function(){
+  $(".card .list-group-item").each(function(index,el){
+    auditTask(el);
+  });
+}, (1000*60)*30);
